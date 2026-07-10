@@ -1,0 +1,2 @@
+google-cloud-monitoring>=2.19,<3
+pytest>=8,<9
