@@ -6,6 +6,10 @@ investigates interactively. The trade-off (slower, needs gcloud installed) is
 acceptable for operational tooling.
 """
 
+# PEP 604 unions in annotations (str | None) crash at import time on 3.9;
+# deferring annotation evaluation keeps the syntax while supporting 3.9+.
+from __future__ import annotations
+
 import json
 import shutil
 import subprocess
