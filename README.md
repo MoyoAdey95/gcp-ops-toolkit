@@ -1,23 +1,25 @@
 # gcp-ops-toolkit
 
 Small command-line utilities for inspecting the health and configuration of a
-GCP environment. These are the kind of checks I run (in some form) before and
-after deployments in real operations work, packaged here as a standalone,
-inspectable toolkit. Personal lab project, not client or production code.
+GCP environment. Some version of these checks is what I actually run before
+and after a deploy. This is that, packaged up as something inspectable rather
+than left as one-off gcloud commands in my shell history. Personal lab
+project, not client or production code.
 
-Built with AI-assisted tooling; designed, tested and operated by me against my
+Built with AI-assisted tooling, designed, tested and operated by me against my
 own GCP lab environment (see companion repo `gcp-terraform-lab`).
 
 ## Safety model
 
-This reflects how I actually work on production systems: discovery before
-change, low-risk investigation before anything that could have impact.
+Every tool here is read-only. That wasn't a hard call. This is discovery
+tooling, and discovery tooling that can also change things is a foot-gun
+waiting to happen. If I ever want it to fix what it finds, that belongs in
+reviewed Terraform, not a script I run half-awake before a deploy.
 
-- **Every tool is read-only.** Nothing here mutates infrastructure.
-- **Failures are explicit.** Missing permissions or disabled APIs produce a
-  clear message and a non-zero exit code, not a stack trace.
-- **Output is for humans and machines.** `--format table` (default) for eyes,
-  `--format json` for piping into other tooling.
+Missing permissions or a disabled API get you a plain error message and a
+non-zero exit code, not a Python traceback. And output works both ways.
+`--format table` by default because that's what I actually read, `--format
+json` when I want to pipe it into something else.
 
 ## Tools
 
@@ -41,7 +43,7 @@ gcloud auth application-default login   # needed by pubsub_backlog (Monitoring A
 ```
 
 Requires the gcloud CLI. Most tools shell out to `gcloud --format=json`.
-That's deliberate: it needs no key handling, works with whatever auth you already
+That's deliberate. It needs no key handling, works with whatever auth you already
 have, and mirrors how an engineer actually investigates. `pubsub_backlog` uses
 the Cloud Monitoring client library instead, because backlog depth only exists
 as a monitoring metric.
@@ -71,17 +73,24 @@ See `examples/`, captured from real runs against my lab environment.
 python -m pytest tests/
 ```
 
-Formatting and threshold logic is unit-tested; anything needing live GCP is
+Formatting and threshold logic is unit-tested. Anything needing live GCP is
 exercised by running the tools against the lab environment.
 
-## Why each tool exists (the operational story)
+## Why each tool exists
 
-- **cloudrun_health / deploy_verify:** most "is it down?" questions after a
-  deploy are answered by revision readiness and traffic split. Checking beats
-  guessing.
-- **iam_audit:** primitive roles accumulate quietly and are invisible until
-  audited. This makes the audit a 5-second habit.
-- **pubsub_backlog:** a growing backlog is the earliest symptom of dead
-  workers; it pages you before users notice.
-- **api_preflight:** "API not enabled" mid-deploy is an avoidable failure;
-  check prerequisites before touching anything.
+`cloudrun_health` and `deploy_verify` both come down to the same question
+after a deploy. Is the revision actually ready and is traffic pointed at it?
+That's answerable from two fields in the service description, so I'd rather
+run a command than click through the console to find them.
+
+`iam_audit` exists because primitive roles creep in quietly. First real run
+against this project flagged the default compute service account sitting on
+`roles/editor` (it's in `examples/`), which I hadn't gone looking for and
+wouldn't have noticed otherwise.
+
+`pubsub_backlog` exists because a stalled consumer shows up as a growing
+backlog before anyone downstream notices anything's wrong. I'd rather see
+that in a terminal than find out from a Slack message.
+
+`api_preflight` exists because "API not enabled" failing you halfway through
+a deploy is completely avoidable. Check first.
