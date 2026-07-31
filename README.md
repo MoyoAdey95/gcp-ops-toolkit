@@ -6,8 +6,8 @@ and after a deploy. This is that, packaged up as something inspectable rather
 than left as one-off gcloud commands in my shell history. Personal lab
 project, not client or production code.
 
-Built with AI-assisted tooling, designed, tested and operated by me against my
-own GCP lab environment (see companion repo `gcp-terraform-lab`).
+Designed, tested and operated by me against my own GCP lab environment (see
+companion repo `gcp-terraform-lab`).
 
 ## Safety model
 
